@@ -1,28 +1,20 @@
 import re
 
+from errors import (
+    ArcadeNotFoundError,
+    InvalidArcadeSourceError,
+    InvalidRegexError,
+    MissingRegexGroupError,
+)
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing_extensions import Self
 
-
-class InvalidRegexError(ValueError):
-    def __init__(self, detail: str) -> None:
-        super().__init__(f"无效的正则表达式: {detail}")
-
-
-class MissingRegexGroupError(ValueError):
-    def __init__(self, group_name: str, available: set[str]) -> None:
-        super().__init__(
-            f"分组 '{group_name}' 不存在于 regex 中，可用分组: {available}"
-        )
-
-class InvalidArcadeSourceError(ValueError):
-    def __init__(self, source: str) -> None:
-        super().__init__(f"无效的机厅来源: {source}")
 
 class QueryAttendanceRegexConfig(BaseModel):
     enabled: bool = Field(description="是否启用查询机厅人数")
     pattern: str = Field(description="用于匹配的正则表达式")
     arcade_alias: str = Field(description="机厅名称/别名")
+    reply_message: str = Field(description="回复消息")
 
     @staticmethod
     def _extract_group_names(pattern: str) -> set[str]:
@@ -46,7 +38,8 @@ class UpdateAttendanceRegexConfig(BaseModel):
     enabled: bool = Field(description="是否启用更新机厅人数")
     pattern: str = Field(description="用于匹配的正则表达式")
     arcade_alias: str = Field(description="机厅名称/别名")
-    attendence_count: str = Field(description="当前人数")
+    attendance_count: str = Field(description="当前人数")
+    reply_message: str = Field(description="回复消息")
 
     @staticmethod
     def _extract_group_names(pattern: str) -> set[str]:
@@ -64,8 +57,8 @@ class UpdateAttendanceRegexConfig(BaseModel):
         if self.arcade_alias not in groups:
             raise MissingRegexGroupError(self.arcade_alias, groups)
 
-        if self.attendence_count not in groups:
-            raise MissingRegexGroupError(self.attendence_count, groups)
+        if self.attendance_count not in groups:
+            raise MissingRegexGroupError(self.attendance_count, groups)
 
         return self
 
@@ -92,3 +85,28 @@ class Config(BaseModel):
         default_factory=dict,
         description="机厅配置",
     )
+
+    _alias_index: dict[str, int] = {}
+
+    @model_validator(mode="after")
+    def build_alias_index(self) -> Self:
+        index: dict[str, int] = {}
+
+        for arcade_id, arcade in self.arcades.items():
+            for alias in arcade.aliases:
+                key = alias.casefold()
+                index[key] = arcade_id
+
+        self._alias_index = index
+        return self
+
+    def find_arcade_by_alias(
+        self, arcade_name: str
+    ) -> tuple[int, ArcadeConfig]:
+        key = arcade_name.casefold()
+
+        arcade_id = self._alias_index.get(key)
+        if arcade_id is None:
+            raise ArcadeNotFoundError(arcade_name)
+
+        return arcade_id, self.arcades[arcade_id]
