@@ -3,6 +3,7 @@ from nonebot.params import RegexDict
 
 from nonebot_plugin_nearcade_reporter.config import Config
 from nonebot_plugin_nearcade_reporter.network import NearcadeHttp
+from nonebot_plugin_nearcade_reporter.safe_dict import SafeDict
 
 config = get_plugin_config(Config)
 nearcade = NearcadeHttp(config.api_token)
@@ -38,7 +39,11 @@ async def _(args: dict[str, str] = RegexDict()):
     if game_count is None:
         await arcade_attendance.finish(f"获取 {arcade.name} 人数失败!")
     reply_msg = config.query_attendance_match.reply_message.format(
-        arcade=arcade.name,
-        count=game_count,
+        SafeDict(
+            arcade=arcade.name,
+            count=game_count,
+            arcade_id=arcade_id,
+            source=arcade.arcade_source,
+        )
     )
     await arcade_attendance.finish(reply_msg)

@@ -3,16 +3,12 @@ from nonebot.params import RegexDict
 
 from nonebot_plugin_nearcade_reporter.config import Config
 from nonebot_plugin_nearcade_reporter.network import NearcadeHttp
+from nonebot_plugin_nearcade_reporter.safe_dict import SafeDict
 
 config = get_plugin_config(Config)
 nearcade = NearcadeHttp(config.api_token)
 
 arcade_attendance = on_regex(config.update_attendance_match.pattern)
-
-
-class SafeDict(dict):
-    def __missing__(self, key):
-        return "{" + key + "}"
 
 
 @arcade_attendance.handle()
@@ -50,6 +46,7 @@ async def _(args: dict[str, str] = RegexDict()):
             arcade=arcade.name,
             count=count,
             arcade_id=arcade_id,
+            source=arcade.arcade_source,
         )
     )
     if config.update_attendance_match.enable_reply:
