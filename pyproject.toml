@@ -20,3 +20,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.extras]
 onebot = ["nonebot-adapter-onebot"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+nonebot2 = "^2.2.0"
+nonebot-adapter-onebot = { version = "^2.0.0-beta.1", optional = true }
