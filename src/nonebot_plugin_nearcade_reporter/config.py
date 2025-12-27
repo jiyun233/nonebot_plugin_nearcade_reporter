@@ -17,9 +17,9 @@ from pydantic import PrivateAttr
 
 
 class QueryAttendanceRegexConfig(BaseModel):
-    enabled: bool = True
+    enable: bool = True
     pattern: str = r"^(?P<arcade>\S+)几人$"
-    arcade_alias: str = "arcade"
+    enable_reply: bool = True
     reply_message: str = "{arcade} 当前人数: {count}"
 
     @staticmethod
@@ -35,17 +35,16 @@ class QueryAttendanceRegexConfig(BaseModel):
     def validate_group_names(self) -> Self:
         groups = self._extract_group_names(self.pattern)
 
-        if self.arcade_alias not in groups:
-            raise MissingRegexGroupError(self.arcade_alias, groups)
+        if "arcade" not in groups:
+            raise MissingRegexGroupError("arcade", groups)
 
         return self
 
 
 class UpdateAttendanceRegexConfig(BaseModel):
-    enabled: bool = True
+    enable: bool = True
     pattern: str = r"^机厅人数\s*(?P<arcade>\S+)\s*(?P<count>(?:100|[1-9]\d?|0))$"
-    arcade_group_name: str = "arcade"
-    count_group_name: str = "count"
+    enable_reply: bool = True
     reply_message: str = "更新成功，{arcade} 当前人数: {count}"
 
     @staticmethod
@@ -61,15 +60,16 @@ class UpdateAttendanceRegexConfig(BaseModel):
     def validate_group_names(self) -> Self:
         groups = self._extract_group_names(self.pattern)
 
-        if self.arcade_group_name not in groups:
-            raise MissingRegexGroupError(self.arcade_group_name, groups)
+        if "arcade" not in groups:
+            raise MissingRegexGroupError("arcade", groups)
 
-        if self.count_group_name not in groups:
-            raise MissingRegexGroupError(self.count_group_name, groups)
+        if "count" not in groups:
+            raise MissingRegexGroupError("count", groups)
         return self
 
 
 class ArcadeConfig(BaseModel):
+    name: str
     arcade_source: str
     aliases: set[str]
     default_game_id: int
@@ -77,7 +77,7 @@ class ArcadeConfig(BaseModel):
     @field_validator("arcade_source")
     @classmethod
     def validate_source_availability(cls, value: str) -> str:
-        if value not in {"bemani", "ziv"}:
+        if value not in {"bemanicn", "ziv"}:
             raise InvalidArcadeSourceError(value)
         return value
 
@@ -88,25 +88,26 @@ class Config(BaseModel):
     update_attendance_match: UpdateAttendanceRegexConfig = UpdateAttendanceRegexConfig()
     arcades: dict[int, ArcadeConfig] = {}
 
-    _alias_index: dict[str, int] = PrivateAttr(default_factory=dict)
+    _alias_index: dict[str, set[int]] = PrivateAttr(default_factory=dict)
 
     @model_validator(mode="after")
     def build_alias_index(self) -> Self:
-        index: dict[str, int] = {}
+        index: dict[str, set[int]] = {}
 
         for arcade_id, arcade in self.arcades.items():
-            for alias in arcade.aliases:
+            name_list = arcade.aliases.union({arcade.name})
+            for alias in name_list:
                 key = alias.casefold()
-                index[key] = arcade_id
+                index.setdefault(key, set()).add(arcade_id)
 
         self._alias_index = index
         return self
 
-    def find_arcade_by_alias(self, arcade_name: str) -> tuple[int, ArcadeConfig]:
+    def find_arcade_by_alias(self, arcade_name: str) -> dict[int, ArcadeConfig]:
         key = arcade_name.casefold()
 
-        arcade_id = self._alias_index.get(key)
-        if arcade_id is None:
-            return [-1, None]
+        arcade_ids = self._alias_index.get(key)
+        if not arcade_ids:
+            return {}
 
-        return arcade_id, self.arcades[arcade_id]
+        return {arcade_id: self.arcades[arcade_id] for arcade_id in arcade_ids}

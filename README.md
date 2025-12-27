@@ -34,7 +34,6 @@ akiba几人
 QUERY_ATTENDANCE_MATCH='{
   "enabled": true,
   "pattern": "^(?P<arcade>\\\\S+)几人$",
-  "arcade_alias": "arcade",
   "reply_message": "{arcade} 当前人数: {count}"
 }'
 ```
@@ -44,8 +43,6 @@ QUERY_ATTENDANCE_MATCH='{
 UPDATE_ATTENDANCE_MATCH='{
   "enabled": true,
   "pattern": "^机厅人数\\\\s*(?P<arcade>\\\\S+)\\\\s*(?P<count>(?:100|[1-9]\\\\d?|0))$",
-  "arcade_group_name": "arcade",
-  "count_group_name": "count",
   "reply_message": "更新成功，{arcade} 当前人数: {count}"
 }'
 ```
@@ -62,6 +59,8 @@ ARCADES='{
 ```
 
 ### ⚠️ 注意事项
+
+正则表达式中必须给机厅别名分组命名 **<arcade>** 人数命名 **<count>**
 
 环境变量中的 JSON 必须是合法 JSON
 
