@@ -19,7 +19,6 @@ from pydantic import PrivateAttr
 class QueryAttendanceRegexConfig(BaseModel):
     enable: bool = True
     pattern: str = r"^(?P<arcade>\S+)几人$"
-    enable_reply: bool = True
     reply_message: str = "{arcade} 当前人数: {count}"
 
     @staticmethod

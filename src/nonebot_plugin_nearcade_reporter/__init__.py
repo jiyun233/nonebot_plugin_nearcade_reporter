@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import nonebot
-from nonebot import get_plugin_config, logger
 from nonebot.plugin import PluginMetadata
 
 from . import command  # noqa: F401
@@ -20,6 +19,3 @@ __plugin_meta__ = PluginMetadata(
 sub_plugins = nonebot.load_plugins(
     str(Path(__file__).parent.joinpath("plugins").resolve())
 )
-
-config = get_plugin_config(Config)
-logger.info(f"Loaded Nearcade config: {config.model_dump()}")

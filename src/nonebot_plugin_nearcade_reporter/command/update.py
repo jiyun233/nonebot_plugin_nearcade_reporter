@@ -45,4 +45,5 @@ async def _(event: GroupMessageEvent, args: dict[str, str] = RegexDict()):
         arcade=arcade.name,
         count=count,
     )
-    await arcade_attendance.finish(f"{reply_msg}")
+    if config.update_attendance_match.enable_reply:
+        await arcade_attendance.finish(f"{reply_msg}")
